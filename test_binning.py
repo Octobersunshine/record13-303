@@ -101,7 +101,50 @@ class TestDataBinning(unittest.TestCase):
         self.assertIn('count', stats.columns)
         self.assertIn('mean', stats.columns)
         self.assertIn('frequency', stats.columns)
+        self.assertIn('bin_left', stats.columns)
+        self.assertIn('bin_right', stats.columns)
+        self.assertIn('bin_closed', stats.columns)
         self.assertAlmostEqual(stats['frequency'].sum(), 1.0, places=5)
+
+    def test_get_bin_stats_boundaries(self):
+        result, intervals = self.binner.equal_width_binning(self.test_data, bins=5, return_intervals=True)
+        stats = self.binner.get_bin_stats(self.test_data, result)
+        for i, interval in enumerate(intervals):
+            self.assertAlmostEqual(stats.loc[i, 'bin_left'], interval.left, places=2)
+            self.assertAlmostEqual(stats.loc[i, 'bin_right'], interval.right, places=5)
+            self.assertEqual(stats.loc[i, 'bin_closed'], interval.closed)
+
+    def test_equal_width_binning_return_stats(self):
+        result, stats = self.binner.equal_width_binning(self.test_data, bins=5, return_stats=True)
+        self.assertEqual(len(result), 10)
+        self.assertEqual(len(stats), 5)
+        self.assertIn('count', stats.columns)
+        self.assertIn('bin_left', stats.columns)
+        self.assertIn('mean', stats.columns)
+
+    def test_equal_width_binning_return_intervals_and_stats(self):
+        result, intervals, stats = self.binner.equal_width_binning(
+            self.test_data, bins=5, return_intervals=True, return_stats=True
+        )
+        self.assertEqual(len(result), 10)
+        self.assertEqual(len(intervals), 5)
+        self.assertEqual(len(stats), 5)
+
+    def test_equal_frequency_binning_return_stats(self):
+        result, stats = self.binner.equal_frequency_binning(self.test_data, bins=5, return_stats=True)
+        self.assertEqual(len(result), 10)
+        self.assertEqual(len(stats), 5)
+        self.assertIn('count', stats.columns)
+        self.assertIn('bin_left', stats.columns)
+        self.assertIn('mean', stats.columns)
+
+    def test_equal_frequency_binning_return_intervals_and_stats(self):
+        result, intervals, stats = self.binner.equal_frequency_binning(
+            self.test_data, bins=5, return_intervals=True, return_stats=True
+        )
+        self.assertEqual(len(result), 10)
+        self.assertEqual(len(intervals), 5)
+        self.assertEqual(len(stats), 5)
 
     def test_bin_to_dict(self):
         result = self.binner.equal_width_binning(self.test_data, bins=5)

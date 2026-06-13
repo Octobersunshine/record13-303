@@ -14,8 +14,9 @@ class DataBinning:
         include_lowest: bool = True,
         right: bool = True,
         labels: Optional[List] = None,
-        return_intervals: bool = False
-    ) -> Tuple[pd.Series, pd.IntervalIndex]:
+        return_intervals: bool = False,
+        return_stats: bool = False
+    ) -> Union[pd.Series, Tuple[pd.Series, pd.IntervalIndex], Tuple[pd.Series, pd.IntervalIndex, pd.DataFrame]]:
         if isinstance(data, list):
             data = pd.Series(data)
         elif isinstance(data, np.ndarray):
@@ -38,6 +39,12 @@ class DataBinning:
 
         intervals = pd.IntervalIndex.from_breaks(bin_edges, closed='right' if right else 'left')
 
+        if return_stats:
+            stats = self.get_bin_stats(data, binned_data)
+            if return_intervals:
+                return binned_data, intervals, stats
+            return binned_data, stats
+
         if return_intervals:
             return binned_data, intervals
         return binned_data
@@ -48,8 +55,9 @@ class DataBinning:
         bins: int,
         labels: Optional[List] = None,
         duplicates: str = 'drop',
-        return_intervals: bool = False
-    ) -> Tuple[pd.Series, pd.IntervalIndex]:
+        return_intervals: bool = False,
+        return_stats: bool = False
+    ) -> Union[pd.Series, Tuple[pd.Series, pd.IntervalIndex], Tuple[pd.Series, pd.IntervalIndex, pd.DataFrame]]:
         if isinstance(data, list):
             data = pd.Series(data)
         elif isinstance(data, np.ndarray):
@@ -84,6 +92,12 @@ class DataBinning:
 
         intervals = pd.IntervalIndex.from_breaks(bin_edges, closed='right')
 
+        if return_stats:
+            stats = self.get_bin_stats(data, binned_data)
+            if return_intervals:
+                return binned_data, intervals, stats
+            return binned_data, stats
+
         if return_intervals:
             return binned_data, intervals
         return binned_data
@@ -110,6 +124,29 @@ class DataBinning:
         ).reset_index()
 
         stats['frequency'] = stats['count'] / stats['count'].sum()
+
+        def get_bin_left(x):
+            if pd.notna(x) and hasattr(x, 'left'):
+                return x.left
+            return None
+
+        def get_bin_right(x):
+            if pd.notna(x) and hasattr(x, 'right'):
+                return x.right
+            return None
+
+        def get_bin_closed(x):
+            if pd.notna(x) and hasattr(x, 'closed'):
+                return x.closed
+            return None
+
+        stats['bin_left'] = stats['bin'].apply(get_bin_left)
+        stats['bin_right'] = stats['bin'].apply(get_bin_right)
+        stats['bin_closed'] = stats['bin'].apply(get_bin_closed)
+
+        cols = ['bin', 'bin_left', 'bin_right', 'bin_closed', 'count', 'frequency',
+                'min', 'max', 'mean', 'std', 'median']
+        stats = stats[cols]
 
         return stats
 
