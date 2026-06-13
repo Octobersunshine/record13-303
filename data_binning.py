@@ -64,13 +64,23 @@ class DataBinning:
         if bins > len(data):
             raise ValueError("bins cannot be larger than the number of data points")
 
-        binned_data, bin_edges = pd.qcut(
-            data,
+        unique_values = pd.Series(data.unique())
+
+        if bins > len(unique_values):
+            raise ValueError(
+                f"bins ({bins}) cannot be larger than the number of unique values ({len(unique_values)})"
+            )
+
+        unique_binned, bin_edges = pd.qcut(
+            unique_values,
             q=bins,
             labels=labels,
             duplicates=duplicates,
             retbins=True
         )
+
+        value_to_bin = dict(zip(unique_values, unique_binned))
+        binned_data = data.map(value_to_bin)
 
         intervals = pd.IntervalIndex.from_breaks(bin_edges, closed='right')
 

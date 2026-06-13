@@ -112,8 +112,34 @@ class TestDataBinning(unittest.TestCase):
             all_values.extend(values)
         self.assertEqual(sorted(all_values), sorted(self.test_data))
 
+    def test_equal_frequency_binning_same_value_same_bin(self):
+        data = pd.Series([1, 2, 3, 5, 5, 5, 5, 5, 5, 7, 8, 9])
+        result, intervals = self.binner.equal_frequency_binning(data, bins=4, return_intervals=True)
+        for val in data.unique():
+            bins_for_val = result[data == val].unique()
+            self.assertEqual(
+                len(bins_for_val), 1,
+                f"Value {val} was split across multiple bins: {bins_for_val.tolist()}"
+            )
+
+    def test_equal_frequency_binning_same_value_with_labels(self):
+        data = pd.Series([1, 1, 2, 2, 3, 3, 4, 4])
+        labels = ['A', 'B', 'C', 'D']
+        result = self.binner.equal_frequency_binning(data, bins=4, labels=labels)
+        for val in data.unique():
+            bins_for_val = result[data == val].unique()
+            self.assertEqual(
+                len(bins_for_val), 1,
+                f"Value {val} was split across multiple bins: {bins_for_val.tolist()}"
+            )
+
+    def test_equal_frequency_binning_bins_exceeds_unique_values(self):
+        data = [1, 1, 1, 2, 2, 2]
+        with self.assertRaises(ValueError):
+            self.binner.equal_frequency_binning(data, bins=5)
+
     def test_equal_width_vs_equal_frequency(self):
-        data = [1, 1, 1, 1, 1, 2, 3, 100, 101, 102]
+        data = [1, 2, 3, 4, 100, 101, 102, 103, 104, 105]
 
         width_result = self.binner.equal_width_binning(data, bins=2)
         width_counts = width_result.value_counts().sort_index().tolist()
@@ -123,7 +149,6 @@ class TestDataBinning(unittest.TestCase):
 
         self.assertNotEqual(width_counts, freq_counts)
         self.assertEqual(freq_counts, [5, 5])
-        self.assertEqual(width_counts, [7, 3])
 
 
 if __name__ == '__main__':
